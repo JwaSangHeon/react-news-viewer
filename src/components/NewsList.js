@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import NewsItem from "./NewsItem";
 import axios from "../../node_modules/axios/index";
+import usePromise from "../lib/usePromise";
 
 const NewsListBlock = styled.div`
   box-sizing: border-box;
@@ -19,25 +20,11 @@ const NewsListBlock = styled.div`
 `;
 
 const NewsList = ({ category }) => {
-  const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get(
-          category === "all"
-            ? `https://newsapi.org/v2/top-headlines?country=kr&apiKey=7b6f6d416b0f4b3e90bfa325491b4c8d`
-            : `https://newsapi.org/v2/top-headlines?country=kr&category=${category}&apiKey=7b6f6d416b0f4b3e90bfa325491b4c8d`
-        );
-        setArticles(response.data.articles);
-      } catch (e) {
-        console.log(e);
-      }
-      setLoading(false);
-    };
-    fetchData();
+  const [loading, response, error] = usePromise(() => {
+    const query = category === "all" ? "" : `&category=${category}`;
+    return axios.get(
+      `https://newsapi.org/v2/top-headlines?country=kr${query}&apiKey=7b6f6d416b0f4b3e90bfa325491b4c8d`
+    );
   }, [category]);
 
   if (loading) {
@@ -47,6 +34,22 @@ const NewsList = ({ category }) => {
       </NewsListBlock>
     );
   }
+
+  //아직 response 값이 설정되지 않았을 때
+  if (!response) {
+    return null;
+  }
+  //에러가 발생했을 때
+  if (error) {
+    return (
+      <NewsListBlock>
+        <h1>에러발생!</h1>
+      </NewsListBlock>
+    );
+  }
+
+  //response 값이 유효할 때
+  const { articles } = response.data;
   return (
     <NewsListBlock>
       {articles.map((article) => (
